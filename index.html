@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Trip Status Board</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="page-pill">TRIP STATUS PAGE</div>
+    </div>
+
+    <div class="topbar-right">
+      <div class="controls">
+        <button id="prevBtn" class="btn">←</button>
+        <button id="todayBtn" class="btn">TODAY</button>
+        <button id="nextBtn" class="btn">→</button>
+
+        <div class="segmented" role="tablist" aria-label="View">
+          <button id="viewWeek" class="seg active" role="tab" aria-selected="true">Week</button>
+          <button id="viewMonth" class="seg" role="tab" aria-selected="false">Month</button>
+        </div>
+
+        <select id="tzSelect" class="select">
+          <option value="UTC">UTC</option>
+          <option value="LOCAL">LOCAL</option>
+        </select>
+
+        <input id="searchInput" class="search" placeholder="Search client / reg / trip / flight / ICAO…" />
+
+        <label class="checkbox">
+          <input id="blockedOnly" type="checkbox" />
+          <span>Blocked only</span>
+        </label>
+
+        <button id="newTripBtn" class="btn primary">NEW TRIP</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="board">
+    <div id="boardHeader" class="board-header"></div>
+    <div id="boardBody" class="board-body"></div>
+  </main>
+
+  <!-- Trip Details Modal -->
+  <div id="modalBackdrop" class="backdrop hidden"></div>
+  <div id="tripModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <div>
+        <div id="modalTitle" class="modal-title">Trip</div>
+        <div id="modalSub" class="modal-sub"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="modalSave" class="btn primary">SAVE</button>
+        <button id="modalClose" class="btn">✕</button>
+      </div>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-grid">
+        <div class="card">
+          <div class="card-title">Details</div>
+          <div id="modalDetails" class="kv"></div>
+        </div>
+
+        <div class="card span-2">
+          <div class="card-title">Legs (click a row to open leg status)</div>
+          <div id="modalLegs" class="legs"></div>
+        </div>
+
+        <div class="card span-2">
+          <div class="card-title">Notes</div>
+          <textarea id="modalNotes" class="notes" placeholder="Trip notes…"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEG MODAL -->
+  <div id="legBackdrop" class="backdrop hidden"></div>
+  <div id="legModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="legTitle">
+    <div class="modal-head">
+      <div>
+        <div id="legTitle" class="modal-title">Leg</div>
+        <div id="legSub" class="modal-sub"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="legEditToggle" class="btn">EDIT</button>
+        <button id="legSave" class="btn primary">SAVE</button>
+        <button id="legClose" class="btn">✕</button>
+      </div>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-grid">
+        <div class="card span-2">
+          <div class="card-title">Leg Details</div>
+          <div id="legDetails"></div>
+        </div>
+
+        <div class="card span-2">
+          <div class="card-title">Leg Status</div>
+          <div id="legStatus"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Trip Modal (v1) -->
+  <div id="newBackdrop" class="backdrop hidden"></div>
+  <div id="newModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="newTitle">
+    <div class="modal-head">
+      <div>
+        <div id="newTitle" class="modal-title">New Trip</div>
+        <div class="modal-sub">Quick add (v1)</div>
+      </div>
+      <button id="newClose" class="btn">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-grid">
+        <label><span>Client</span><input id="newClient" placeholder="e.g. Cartier Europe B.V." /></label>
+        <label><span>Registration</span><input id="newReg" placeholder="e.g. PHCFR" /></label>
+        <label><span>Trip ID</span><input id="newTripId" placeholder="e.g. TRIP-2026-0150" /></label>
+        <label><span>Tags (comma)</span><input id="newTags" placeholder="e.g. AOG, MED" /></label>
+
+        <label><span>Start date</span><input id="newStart" type="date" /></label>
+        <label><span>End date</span><input id="newEnd" type="date" /></label>
+      </div>
+
+      <div class="card mt12">
+        <div class="card-title">First Leg (optional)</div>
+        <div class="form-grid">
+          <label><span>Flight No</span><input id="newFlt" placeholder="e.g. PH123" /></label>
+          <label><span>ADEP</span><input id="newAdep" placeholder="EGSS" /></label>
+          <label><span>ADES</span><input id="newAdes" placeholder="LFPB" /></label>
+          <label><span>STD</span><input id="newStd" placeholder="0830" /></label>
+          <label><span>STA</span><input id="newSta" placeholder="1030" /></label>
+          <label><span>ALTN</span><input id="newAltn" placeholder="LFPO" /></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button id="newCreate" class="btn primary">CREATE</button>
+      <button id="newCancel" class="btn">CANCEL</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
