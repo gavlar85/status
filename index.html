@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Trip Status Board — TSB-NG v0.1</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand__title">Trip Status Board</div>
+      <div class="brand__meta">TSB-NG v0.1 • UTC</div>
+    </div>
+
+    <div class="topbar__actions">
+      <button class="btn btn--primary" id="btnAddTrip" type="button">Add Trip</button>
+      <button class="btn" id="btnExport" type="button" title="Download your locally-stored trips as JSON">Export</button>
+      <label class="btn" for="fileImport" title="Load trips from a JSON file (stored locally afterwards)" style="display:inline-flex;align-items:center;gap:8px;">
+        Import
+        <input id="fileImport" type="file" accept="application/json" hidden />
+      </label>
+      <button class="btn" id="btnReset" type="button" title="Reset to seed data (clears local storage)">Reset</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="board">
+      <div class="board__toolbar">
+        <div class="toolbar__left">
+          <div class="pill pill--info" id="rangeLabel">Loading…</div>
+          <div class="pill pill--ghost">UTC</div>
+        </div>
+        <div class="toolbar__right">
+          <div class="hint">Click a trip to open the drawer • Local data persists in your browser</div>
+        </div>
+      </div>
+
+      <div class="timeline" id="timeline">
+        <div class="timeline__header" id="timelineHeader"></div>
+        <div class="timeline__grid" id="timelineGrid"></div>
+      </div>
+    </section>
+
+    <aside class="drawer" id="drawer" aria-hidden="true">
+      <div class="drawer__handle">
+        <button class="iconbtn" id="drawerClose" type="button" aria-label="Close drawer">✕</button>
+      </div>
+
+      <div class="drawer__content" id="drawerContent"></div>
+    </aside>
+
+    <div class="backdrop" id="backdrop" hidden></div>
+
+    <div class="modal" id="modal" hidden role="dialog" aria-modal="true">
+      <div class="modal__panel">
+        <div class="modal__head">
+          <div class="modal__title" id="modalTitle">Modal</div>
+          <button class="iconbtn" id="modalClose" type="button" aria-label="Close modal">✕</button>
+        </div>
+        <div class="modal__body" id="modalBody"></div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
