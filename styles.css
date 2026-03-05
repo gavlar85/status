@@ -363,6 +363,10 @@ body{
   z-index: 6;
 }
 
+.backdrop[hidden]{
+  display:none;
+}
+
 /* Modal */
 .modal{
   position: absolute;
@@ -391,6 +395,10 @@ body{
 }
 .modal__title{ font-weight: 850; letter-spacing: .2px; }
 .modal__body{ padding: 12px; }
+
+.modal[hidden] {
+  display: none;
+}
 
 .form{
   display: grid;
