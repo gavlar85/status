@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trip Workspace v1.22</title>
+  <link rel="stylesheet" href="workspace.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-box">TRIP<br>OPS</div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-btn active" data-drawer="boardDrawer">Board</button>
+        <button class="nav-btn" data-drawer="workspaceDrawer">Workspace</button>
+        <button class="nav-btn" data-drawer="checklistDrawer">Checklist</button>
+        <button class="nav-btn" data-drawer="docsDrawer">Docs</button>
+        <button class="nav-btn" data-drawer="linksDrawer">Links</button>
+        <button class="nav-btn" data-drawer="notesDrawer">Notes</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="release-badge">Release 0.22</div>
+      </div>
+    </aside>
+
+    <div class="drawer-layer" id="drawerLayer">
+      <aside class="drawer-panel hidden" id="boardDrawer">
+        <div class="drawer-header">
+          <div>
+            <div class="drawer-eyebrow">Board Tools</div>
+            <h2>Board Drawer</h2>
+          </div>
+          <button class="drawer-close" data-close-drawer>×</button>
+        </div>
+        <div class="drawer-body">
+          <section class="drawer-section">
+            <h3>Gallimimus Board</h3>
+            <div class="drawer-button-stack">
+              <button class="drawer-action primary" id="openBoardBtn">Open Gallimimus Board</button>
+              <button class="drawer-action" id="saveFlightJsBtn">Save flight.js</button>
+              <button class="drawer-action" id="updateFlightJsBtn">Update flight.js</button>
+            </div>
+            <div class="drawer-status" id="boardExportStatus">No export generated yet.</div>
+          </section>
+          <section class="drawer-section">
+            <h3>Board Utilities</h3>
+            <div class="drawer-button-stack">
+              <button class="drawer-action" id="validateActiveLegsBtn">Validate active legs</button>
+              <button class="drawer-action" id="openBoardSettingsBtn">Open board settings</button>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <aside class="drawer-panel hidden" id="workspaceDrawer">
+        <div class="drawer-header">
+          <div>
+            <div class="drawer-eyebrow">Workspace Tools</div>
+            <h2>Workspace Drawer</h2>
+          </div>
+          <button class="drawer-close" data-close-drawer>×</button>
+        </div>
+        <div class="drawer-body">
+          <section class="drawer-section">
+            <h3>Data</h3>
+            <div class="drawer-button-stack">
+              <button class="drawer-action primary" id="loadTripsJsBtn">Load trips.js</button>
+              <button class="drawer-action" id="saveTripsJsBtn">Save trips.js</button>
+              <button class="drawer-action" id="saveTripsJsAsBtn">Save trips.js As…</button>
+              <button class="drawer-action" id="resetWorkspaceBtn">Reset Workspace</button>
+            </div>
+            <div class="drawer-status" id="workspaceDataStatus">No trips loaded.</div>
+          </section>
+
+          <section class="drawer-section">
+            <h3>Layout</h3>
+            <div class="drawer-button-stack">
+              <button class="drawer-action" id="collapseKpiBtn">Collapse KPI strip</button>
+              <button class="drawer-action" id="toggleUtilityBtn">Toggle utility column</button>
+              <button class="drawer-action" id="openWorkspaceSettingsBtn">Open workspace settings</button>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <aside class="drawer-panel hidden" id="checklistDrawer">
+        <div class="drawer-header">
+          <div>
+            <div class="drawer-eyebrow">Checklist Tools</div>
+            <h2>Checklist Drawer</h2>
+          </div>
+          <button class="drawer-close" data-close-drawer>×</button>
+        </div>
+        <div class="drawer-body">
+          <section class="drawer-section">
+            <h3>Checklist Actions</h3>
+            <div class="drawer-button-stack">
+              <button class="drawer-action primary">Open Falcon Checklist</button>
+              <button class="drawer-action">Start new trip checklist</button>
+              <button class="drawer-action">Open last active checklist</button>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <aside class="drawer-panel hidden" id="docsDrawer">
+        <div class="drawer-header">
+          <div>
+            <div class="drawer-eyebrow">Document Tools</div>
+            <h2>Docs Drawer</h2>
+          </div>
+          <button class="drawer-close" data-close-drawer>×</button>
+        </div>
+        <div class="drawer-body">
+          <section class="drawer-section">
+            <h3>Documents</h3>
+            <div class="drawer-button-stack">
+              <button class="drawer-action">Open trip documents</button>
+              <button class="drawer-action">Open permits pack</button>
+              <button class="drawer-action">Open client brief</button>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <aside class="drawer-panel hidden" id="linksDrawer">
+        <div class="drawer-header">
+          <div>
+            <div class="drawer-eyebrow">Link Tools</div>
+            <h2>Links Drawer</h2>
+          </div>
+          <button class="drawer-close" data-close-drawer>×</button>
+        </div>
+        <div class="drawer-body">
+          <section class="drawer-section">
+            <h3>Quick Links</h3>
+            <div class="drawer-button-stack">
+              <button class="drawer-action">Open FR24</button>
+              <button class="drawer-action">Open CAPPS</button>
+              <button class="drawer-action">Open Falcon</button>
+              <button class="drawer-action">Open client portal</button>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <aside class="drawer-panel hidden" id="notesDrawer">
+        <div class="drawer-header">
+          <div>
+            <div class="drawer-eyebrow">Notes Tools</div>
+            <h2>Notes Drawer</h2>
+          </div>
+          <button class="drawer-close" data-close-drawer>×</button>
+        </div>
+        <div class="drawer-body">
+          <section class="drawer-section">
+            <h3>Operational Notes</h3>
+            <textarea class="drawer-notes" placeholder="Add shift notes, handover points, or reminders..."></textarea>
+            <div class="drawer-button-stack compact">
+              <button class="drawer-action primary">Save Notes</button>
+              <button class="drawer-action">Clear Notes</button>
+            </div>
+          </section>
+        </div>
+      </aside>
+    </div>
+
+    <section class="board-column">
+      <header class="board-header">
+        <div class="board-header-top">
+          <div>
+            <h1>Trip Workspace</h1>
+            <p>Load a local trips.js from the Workspace Drawer to begin.</p>
+          </div>
+          <div class="data-status-wrap">
+            <div class="data-status-label">Data Status</div>
+            <div class="data-status-badge status-empty" id="dataStatusBadge">No trips loaded</div>
+          </div>
+        </div>
+
+        <div class="filters">
+          <input id="searchInput" type="text" placeholder="Search callsign, reg, client, ICAO..." />
+          <select id="statusFilter">
+            <option value="all">All Statuses</option>
+            <option value="loaded">Loaded</option>
+            <option value="updated">Updated</option>
+            <option value="qualitychecked">Quality Checked</option>
+            <option value="needsattention">Needs Attention</option>
+          </select>
+          <select id="clientFilter">
+            <option value="all">All Clients</option>
+          </select>
+          <select id="scopeFilter">
+            <option value="active">All Active</option>
+            <option value="today">Today</option>
+            <option value="all">All Trips</option>
+          </select>
+        </div>
+      </header>
+
+      <div id="lanesContainer" class="lanes"></div>
+    </section>
+
+    <main class="workspace-main">
+      <section class="kpi-strip" id="kpiStrip"></section>
+
+      <div class="workspace-grid">
+        <div class="main-panels">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Selected Trip</h2>
+              <div id="selectedUpdated" class="panel-meta"></div>
+            </div>
+            <div id="selectedTripPanel" class="panel-body"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Leg Selector Panel</h2>
+              <div class="panel-meta">Select working leg</div>
+            </div>
+            <div id="legSelectorPanel" class="panel-body"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Alerts &amp; Outstanding Actions</h2>
+            </div>
+            <div id="alertsTasksPanel" class="panel-body two-col"></div>
+          </section>
+
+          <div class="panel-row">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Overview</h2>
+              </div>
+              <div id="overviewPanel" class="panel-body"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Services</h2>
+              </div>
+              <div id="servicesPanel" class="panel-body"></div>
+            </section>
+          </div>
+        </div>
+
+        <aside class="right-panels">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Outstanding Task List</h2>
+            </div>
+            <div id="taskListPanel" class="panel-body"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Recent Updates</h2>
+            </div>
+            <div id="recentUpdatesPanel" class="panel-body"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Linked Tools</h2>
+            </div>
+            <div class="panel-body linked-tools">
+              <button>Open Checklist</button>
+              <button>Open Schedule View</button>
+              <button>Open FR24 / Tracker</button>
+              <button>Open Trip Documents</button>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script src="workspace.js"></script>
+</body>
+</html>
