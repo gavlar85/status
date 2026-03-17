@@ -706,3 +706,95 @@ button, input, select, textarea { font: inherit; }
 .health-btn.green.active { background: rgba(52,211,153,.2); color: #d1fae5; }
 .health-btn.amber.active { background: rgba(251,191,36,.2); color: #fef3c7; }
 .health-btn.red.active { background: rgba(251,113,133,.2); color: #ffe4e6; }
+
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-icon-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  background: #334155;
+  color: var(--text);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-icon-btn:hover {
+  background: #475569;
+}
+
+.panel-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.leg-notes-box {
+  width: 100%;
+  min-height: 196px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.82);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 14px;
+  line-height: 1.5;
+}
+
+.leg-notes-help {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.service-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.service-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  background: rgba(34, 211, 238, 0.12);
+  color: #cffafe;
+  border-radius: 999px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.service-pill.selected {
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.55) inset;
+  border-color: rgba(103, 232, 249, 0.7);
+}
+
+.service-pill-remove {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  background: rgba(0,0,0,0.18);
+}
+
+.empty-service-text {
+  font-size: 14px;
+  color: var(--muted);
+}
