@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trip Workspace v1.22</title>
+  <title>Trip Workspace v1.23</title>
   <link rel="stylesheet" href="workspace.css" />
 </head>
 <body>
@@ -23,7 +23,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <div class="release-badge">Release 0.22</div>
+        <div class="release-badge">Release 0.23</div>
       </div>
     </aside>
 
@@ -45,13 +45,6 @@
               <button class="drawer-action" id="updateFlightJsBtn">Update flight.js</button>
             </div>
             <div class="drawer-status" id="boardExportStatus">No export generated yet.</div>
-          </section>
-          <section class="drawer-section">
-            <h3>Board Utilities</h3>
-            <div class="drawer-button-stack">
-              <button class="drawer-action" id="validateActiveLegsBtn">Validate active legs</button>
-              <button class="drawer-action" id="openBoardSettingsBtn">Open board settings</button>
-            </div>
           </section>
         </div>
       </aside>
@@ -81,7 +74,6 @@
             <div class="drawer-button-stack">
               <button class="drawer-action" id="collapseKpiBtn">Collapse KPI strip</button>
               <button class="drawer-action" id="toggleUtilityBtn">Toggle utility column</button>
-              <button class="drawer-action" id="openWorkspaceSettingsBtn">Open workspace settings</button>
             </div>
           </section>
         </div>
@@ -174,7 +166,7 @@
         <div class="board-header-top">
           <div>
             <h1>Trip Workspace</h1>
-            <p>Load a local trips.js from the Workspace Drawer to begin.</p>
+            <p>Load a local trips.js from the Workspace Drawer to begin. Lanes are driven automatically by the first leg ETD.</p>
           </div>
           <div class="data-status-wrap">
             <div class="data-status-label">Data Status</div>
@@ -185,18 +177,17 @@
         <div class="filters">
           <input id="searchInput" type="text" placeholder="Search callsign, reg, client, ICAO..." />
           <select id="statusFilter">
-            <option value="all">All Statuses</option>
-            <option value="loaded">Loaded</option>
-            <option value="updated">Updated</option>
-            <option value="qualitychecked">Quality Checked</option>
-            <option value="needsattention">Needs Attention</option>
+            <option value="all">All Health</option>
+            <option value="green">Green</option>
+            <option value="amber">Amber</option>
+            <option value="red">Red</option>
           </select>
           <select id="clientFilter">
             <option value="all">All Clients</option>
           </select>
           <select id="scopeFilter">
-            <option value="active">All Active</option>
-            <option value="today">Today</option>
+            <option value="active">Active Trips</option>
+            <option value="includeCompleted">Include Completed</option>
             <option value="all">All Trips</option>
           </select>
         </div>
@@ -281,6 +272,6 @@
     </main>
   </div>
 
-  <script src="workspace.js"></script>
+  <script src="workspace_v123.js"></script>
 </body>
 </html>
