@@ -447,8 +447,6 @@ function renderOverview(trip, leg) {
   }
 
   overviewPanel.innerHTML = `<div class="stack">
-    <div class="generic-card"><div class="generic-title">Selected Leg</div><div class="generic-text">${leg.dep} → ${leg.dest} · ${getLegHealth(leg).toUpperCase()}</div></div>
-    <div class="generic-card"><div class="generic-title">Handler</div><div class="generic-text">${leg.handler || "No handler recorded"}${leg.handlingType ? ` · ${leg.handlingType}` : ""}</div></div>
     <div class="generic-card">
       <div class="generic-title">Leg Notes</div>
       <textarea id="legNotesInput" class="leg-notes-box" placeholder="Add working notes for this leg...">${escapeHtml(leg.note || "")}</textarea>
