@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trip Workspace v1.23</title>
+  <title>Trip Workspace v1.25</title>
   <link rel="stylesheet" href="workspace.css" />
 </head>
 <body>
@@ -23,7 +23,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <div class="release-badge">Release 0.23</div>
+        <div class="release-badge">Release 0.25</div>
       </div>
     </aside>
 
@@ -178,6 +178,8 @@
           <input id="searchInput" type="text" placeholder="Search callsign, reg, client, ICAO..." />
           <select id="statusFilter">
             <option value="all">All Health</option>
+            <option value="white">White</option>
+            <option value="blue">Blue</option>
             <option value="green">Green</option>
             <option value="amber">Amber</option>
             <option value="red">Red</option>
@@ -215,6 +217,14 @@
               <div class="panel-meta">Select working leg</div>
             </div>
             <div id="legSelectorPanel" class="panel-body"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Selected Leg</h2>
+              <div class="panel-meta">Working sector detail</div>
+            </div>
+            <div id="selectedLegPanel" class="panel-body"></div>
           </section>
 
           <section class="panel">
