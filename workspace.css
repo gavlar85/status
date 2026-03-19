@@ -807,57 +807,192 @@ button, input, select, textarea { font: inherit; }
 .health-btn.blue.active { background: rgba(59,130,246,.25); color: #dbeafe; }
 
 
-.selected-leg-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+.selected-leg-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.selected-leg-header {
+  display: flex;
+  justify-content: space-between;
   gap: 16px;
-  align-items: start;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
-.selected-leg-eyebrow {
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-}
+
 .selected-leg-callsign {
-  margin-top: 4px;
-  font-size: 34px;
+  font-size: 32px;
   font-weight: 800;
-  line-height: 1.05;
+  line-height: 1;
 }
+
 .selected-leg-route {
   margin-top: 8px;
   font-size: 20px;
   font-weight: 700;
+  color: var(--text);
 }
-.selected-leg-times {
-  margin-top: 10px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+
+.selected-leg-grid {
+  margin-top: 0;
 }
-.selected-leg-time-card {
-  background: var(--panel-2);
+
+.selected-leg-services-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.compact-empty {
+  padding: 10px 12px;
+}
+
+
+.trip-card.health-striped-green {
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(255,255,255,0.96) 0 10px,
+    rgba(255,255,255,0.96) 10px 20px,
+    rgba(52, 211, 153, 0.92) 20px 30px,
+    rgba(52, 211, 153, 0.92) 30px 40px
+  );
+  color: #0f172a;
+  border-color: rgba(52, 211, 153, 0.45);
+}
+
+.trip-card.health-striped-amber {
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(255,255,255,0.96) 0 10px,
+    rgba(255,255,255,0.96) 10px 20px,
+    rgba(251, 191, 36, 0.92) 20px 30px,
+    rgba(251, 191, 36, 0.92) 30px 40px
+  );
+  color: #111827;
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
+.trip-card.health-striped-red {
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(255,255,255,0.96) 0 10px,
+    rgba(255,255,255,0.96) 10px 20px,
+    rgba(251, 113, 133, 0.92) 20px 30px,
+    rgba(251, 113, 133, 0.92) 30px 40px
+  );
+  color: #111827;
+  border-color: rgba(251, 113, 133, 0.45);
+}
+
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 120;
+}
+
+.modal-backdrop.hidden {
+  display: none;
+}
+
+.modal-dialog {
+  width: min(760px, calc(100vw - 40px));
+  max-height: calc(100vh - 40px);
+  background: #223039;
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px;
+  border-radius: 18px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.42);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
-.selected-leg-time-label {
-  font-size: 11px;
+
+.modal-header,
+.modal-footer {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-footer {
+  border-bottom: 0;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modal-header h2 {
+  margin: 6px 0 0;
+  font-size: 24px;
+}
+
+.modal-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #2f3c45;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.modal-body {
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-help {
+  margin: 0;
+  color: var(--soft);
+  line-height: 1.5;
+}
+
+.service-modal-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.service-modal-pill {
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  background: rgba(34, 211, 238, 0.12);
+  color: #cffafe;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 14px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .14em;
+  cursor: pointer;
+}
+
+.service-modal-pill:hover {
+  background: rgba(34, 211, 238, 0.2);
+}
+
+.service-modal-empty {
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
   color: var(--muted);
 }
-.selected-leg-time-value {
-  margin-top: 6px;
-  font-size: 18px;
-  font-weight: 800;
-}
-@media (max-width: 1100px) {
-  .selected-leg-grid,
-  .selected-leg-times {
-    grid-template-columns: 1fr;
-  }
+
+.service-modal-empty.hidden {
+  display: none;
 }
