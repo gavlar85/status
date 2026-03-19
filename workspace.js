@@ -2,7 +2,7 @@
 const STORAGE_KEY_TRIPS = "workspace_local_trips_v2";
 const STORAGE_KEY_META = "workspace_local_meta_v2";
 
-const healthRank = { green: 0, amber: 1, red: 2 };
+const healthRank = { green: 0, white: 1, blue: 2, amber: 3, red: 4 };
 const laneConfig = {
   operating: { label: "Operating", dotClass: "operating-dot" },
   hours24to48: { label: "24-48hrs", dotClass: "hours24to48-dot" },
@@ -31,6 +31,7 @@ const kpiStrip = document.getElementById("kpiStrip");
 const selectedTripPanel = document.getElementById("selectedTripPanel");
 const selectedUpdated = document.getElementById("selectedUpdated");
 const legSelectorPanel = document.getElementById("legSelectorPanel");
+const selectedLegPanel = document.getElementById("selectedLegPanel");
 const alertsTasksPanel = document.getElementById("alertsTasksPanel");
 const overviewPanel = document.getElementById("overviewPanel");
 const servicesPanel = document.getElementById("servicesPanel");
@@ -90,10 +91,10 @@ function escapeAttribute(value) {
 
 function normalizeHealth(value, leg = {}) {
   const candidate = String(value ?? "").toLowerCase();
-  if (["green", "amber", "red"].includes(candidate)) return candidate;
+  if (["white", "blue", "green", "amber", "red"].includes(candidate)) return candidate;
   if ((leg.alerts || []).length) return "red";
   if ((leg.tasks || []).length) return "amber";
-  return "green";
+  return "white";
 }
 
 function sanitizeTrips(input) {
@@ -238,11 +239,41 @@ function getLegHealth(leg) {
 }
 
 function getTripHealth(trip) {
-  if (!trip?.legs?.length) return "green";
-  return trip.legs.reduce((worst, leg) => {
-    const current = getLegHealth(leg);
-    return healthRank[current] > healthRank[worst] ? current : worst;
-  }, "green");
+  if (!trip?.legs?.length) return "white";
+  const healths = trip.legs.map(leg => getLegHealth(leg));
+  const hasWhite = healths.includes("white");
+  const hasBlue = healths.includes("blue");
+  const hasRed = healths.includes("red");
+  const hasAmber = healths.includes("amber");
+  const hasGreen = healths.includes("green");
+
+  if (hasBlue) return "blue";
+  if (hasRed) return hasWhite ? "striped-red" : "red";
+  if (hasAmber) return hasWhite ? "striped-amber" : "amber";
+  if (hasGreen) return hasWhite ? "striped-green" : "green";
+  return "white";
+}
+
+function formatTripHealthLabel(value) {
+  const map = {
+    "white": "WHITE",
+    "blue": "BLUE",
+    "green": "GREEN",
+    "amber": "AMBER",
+    "red": "RED",
+    "striped-green": "WHITE / GREEN",
+    "striped-amber": "WHITE / AMBER",
+    "striped-red": "WHITE / RED"
+  };
+  return map[value] || String(value || "").toUpperCase();
+}
+
+function matchesTripHealthFilter(displayHealth, filterValue) {
+  if (filterValue === "all") return true;
+  if (filterValue === "green") return displayHealth === "green" || displayHealth === "striped-green";
+  if (filterValue === "amber") return displayHealth === "amber" || displayHealth === "striped-amber";
+  if (filterValue === "red") return displayHealth === "red" || displayHealth === "striped-red";
+  return displayHealth === filterValue;
 }
 
 function getTripAlertsCount(trip) {
@@ -273,7 +304,7 @@ function getFilteredTrips() {
       (trip.client || "").toLowerCase().includes(search) ||
       (trip.tripRef || "").toLowerCase().includes(search) ||
       trip.legs.some(leg => (leg.dep || "").toLowerCase().includes(search) || (leg.dest || "").toLowerCase().includes(search));
-    const matchesHealth = healthFilter === "all" || getTripHealth(trip) === healthFilter;
+    const matchesHealth = matchesTripHealthFilter(getTripHealth(trip), healthFilter);
     const matchesClient = client === "all" || trip.client === client;
     return matchesSearch && matchesHealth && matchesClient;
   });
@@ -343,7 +374,7 @@ function renderLanes(filteredTrips) {
 }
 
 function renderSelectedTrip(trip, leg) {
-  if (!trip || !leg) {
+  if (!trip) {
     selectedUpdated.textContent = "";
     selectedTripPanel.innerHTML = `<div class="empty-state-card"><h3>No Trip Selected</h3><p>Load a local trips.js from the Workspace Drawer to populate the workspace.</p></div>`;
     return;
@@ -353,20 +384,13 @@ function renderSelectedTrip(trip, leg) {
     <div>
       <div class="selected-client">${trip.client} · ${trip.tripRef}</div>
       <div class="selected-callsign">${trip.callsign}</div>
-      <div class="selected-route">${leg.dep} → ${leg.dest}</div>
-      <div class="selected-meta">${trip.registration} · ${trip.aircraftType} · Health ${getTripHealth(trip).toUpperCase()} · Workflow ${trip.workflowStatus.toUpperCase()}</div>
+      <div class="selected-meta">${trip.registration} · ${trip.aircraftType} · Health ${formatTripHealthLabel(getTripHealth(trip))} · Workflow ${trip.workflowStatus.toUpperCase()}</div>
     </div>
     <div class="action-buttons">
-      <button class="primary">Open Checklist</button>
+      <button class="primary">Edit Trip</button>
       <button type="button" class="workflow-btn ${trip.workflowStatus === "active" ? "active" : ""}" data-trip-workflow="active">Reopen Trip</button>
       <button type="button" class="workflow-btn ${trip.workflowStatus === "completed" ? "active" : ""}" data-trip-workflow="completed">Mark Completed</button>
     </div>
-  </div>
-  <div class="info-grid">
-    <div class="info-card"><div class="info-label">Leg ETD</div><div class="info-value">${formatLegDateTime(leg.etd)}</div></div>
-    <div class="info-card"><div class="info-label">Leg ETA</div><div class="info-value">${formatLegDateTime(leg.eta)}</div></div>
-    <div class="info-card"><div class="info-label">Current Lane</div><div class="info-value">${trip.workflowStatus === "completed" ? "Completed" : laneConfig[getLaneForTrip(trip)]?.label || "—"}</div></div>
-    <div class="info-card"><div class="info-label">Leg Count</div><div class="info-value">${trip.legs.length}</div></div>
   </div>`;
   selectedTripPanel.querySelectorAll("[data-trip-workflow]").forEach(btn => btn.addEventListener("click", () => {
     trip.workflowStatus = btn.dataset.tripWorkflow;
@@ -396,6 +420,33 @@ function renderLegSelector(trip) {
   }));
 }
 
+function renderSelectedLeg(trip, leg) {
+  if (!trip || !leg) {
+    selectedLegPanel.innerHTML = `<div class="empty-state-card"><h3>No Leg Selected</h3><p>Select a working leg to view sector detail.</p></div>`;
+    return;
+  }
+  selectedLegPanel.innerHTML = `<div class="selected-leg-grid">
+    <div>
+      <div class="selected-leg-eyebrow">Leg ${leg.seq}</div>
+      <div class="selected-leg-callsign">${trip.callsign}</div>
+      <div class="selected-leg-route">${leg.dep} → ${leg.dest}</div>
+      <div class="selected-leg-times">
+        <div class="selected-leg-time-card">
+          <div class="selected-leg-time-label">Leg ETD</div>
+          <div class="selected-leg-time-value">${formatLegDateTime(leg.etd)}</div>
+        </div>
+        <div class="selected-leg-time-card">
+          <div class="selected-leg-time-label">Leg ETA</div>
+          <div class="selected-leg-time-value">${formatLegDateTime(leg.eta)}</div>
+        </div>
+      </div>
+    </div>
+    <div class="action-buttons">
+      <button class="primary">Edit Leg</button>
+    </div>
+  </div>`;
+}
+
 function renderAlertsAndTasks(trip, leg) {
   if (!trip || !leg) {
     alertsTasksPanel.innerHTML = `<div class="empty-state-card" style="grid-column:1/-1"><h3>No Active Data</h3><p>Alerts and tasks will appear once a leg is selected.</p></div>`;
@@ -405,6 +456,8 @@ function renderAlertsAndTasks(trip, leg) {
     <div class="control-card">
       <div class="control-title">Leg Health</div>
       <div class="health-controls">
+        <button type="button" class="health-btn white ${getLegHealth(leg) === "white" ? "active" : ""}" data-leg-health="white">White</button>
+        <button type="button" class="health-btn blue ${getLegHealth(leg) === "blue" ? "active" : ""}" data-leg-health="blue">Blue</button>
         <button type="button" class="health-btn green ${getLegHealth(leg) === "green" ? "active" : ""}" data-leg-health="green">Green</button>
         <button type="button" class="health-btn amber ${getLegHealth(leg) === "amber" ? "active" : ""}" data-leg-health="amber">Amber</button>
         <button type="button" class="health-btn red ${getLegHealth(leg) === "red" ? "active" : ""}" data-leg-health="red">Red</button>
@@ -491,7 +544,7 @@ function renderRecentUpdates(filteredTrips) {
     recentUpdatesPanel.innerHTML = `<div class="generic-card"><div class="generic-text">No updates available. Load a trips.js file to begin.</div></div>`;
     return;
   }
-  const updates = filteredTrips.slice(0, 5).map(trip => `${trip.callsign} in ${laneConfig[getLaneForTrip(trip)]?.label || "Completed"} with ${getTripHealth(trip).toUpperCase()} trip health.`);
+  const updates = filteredTrips.slice(0, 5).map(trip => `${trip.callsign} in ${laneConfig[getLaneForTrip(trip)]?.label || "Completed"} with ${formatTripHealthLabel(getTripHealth(trip))} trip health.`);
   recentUpdatesPanel.innerHTML = updates.map(item => `<div class="update-item"><div class="main">${item}</div></div>`).join("");
 }
 
@@ -702,6 +755,7 @@ function render() {
   renderLanes(filteredTrips);
   renderSelectedTrip(selectedTrip, selectedLeg);
   renderLegSelector(selectedTrip);
+  renderSelectedLeg(selectedTrip, selectedLeg);
   renderAlertsAndTasks(selectedTrip, selectedLeg);
   renderOverview(selectedTrip, selectedLeg);
   renderTaskList(filteredTrips);
