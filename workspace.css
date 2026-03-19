@@ -798,3 +798,66 @@ button, input, select, textarea { font: inherit; }
   font-size: 14px;
   color: var(--muted);
 }
+
+.trip-card.health-white { background: rgba(255,255,255,0.96); color: #0f172a; border-color: rgba(226,232,240,0.9); }
+.trip-card.health-blue { background: rgba(59,130,246,0.92); color: #eff6ff; border-color: rgba(59,130,246,0.45); }
+.health-dot.white { background: #ffffff; border: 1px solid rgba(148,163,184,.8); }
+.health-dot.blue { background: #3b82f6; }
+.health-btn.white.active { background: rgba(255,255,255,.28); color: #ffffff; }
+.health-btn.blue.active { background: rgba(59,130,246,.25); color: #dbeafe; }
+
+
+.selected-leg-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+}
+.selected-leg-eyebrow {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.selected-leg-callsign {
+  margin-top: 4px;
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.05;
+}
+.selected-leg-route {
+  margin-top: 8px;
+  font-size: 20px;
+  font-weight: 700;
+}
+.selected-leg-times {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.selected-leg-time-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+}
+.selected-leg-time-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: var(--muted);
+}
+.selected-leg-time-value {
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 800;
+}
+@media (max-width: 1100px) {
+  .selected-leg-grid,
+  .selected-leg-times {
+    grid-template-columns: 1fr;
+  }
+}
