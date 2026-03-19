@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trip Workspace v1.26.1</title>
+  <title>Trip Workspace v1.26.3</title>
   <link rel="stylesheet" href="workspace.css" />
 </head>
 <body>
@@ -23,7 +23,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <div class="release-badge">Release 0.26.1</div>
+        <div class="release-badge">Release 0.26.3</div>
       </div>
     </aside>
 
@@ -224,18 +224,12 @@
               <h2>Selected Leg</h2>
               <div class="panel-actions">
                 <button type="button" class="panel-icon-btn" id="addServiceBtn" title="Add service">+</button>
-                <button type="button" class="panel-icon-btn" id="removeServiceBtn" title="Remove selected service">−</button>
+                
               </div>
             </div>
             <div id="selectedLegPanel" class="panel-body"></div>
           </section>
 
-          <section class="panel">
-            <div class="panel-header">
-              <h2>Alerts &amp; Outstanding Actions</h2>
-            </div>
-            <div id="alertsTasksPanel" class="panel-body two-col"></div>
-          </section>
 
           <section class="panel">
             <div class="panel-header">
@@ -292,6 +286,44 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="drawer-action" id="doneServiceModalBtn">Done</button>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="modal-backdrop hidden" id="editLegModalBackdrop">
+    <div class="modal-dialog edit-leg-modal" role="dialog" aria-modal="true" aria-labelledby="editLegModalTitle">
+      <div class="modal-header">
+        <div>
+          <div class="drawer-eyebrow">Selected Leg</div>
+          <h2 id="editLegModalTitle">Edit Leg</h2>
+        </div>
+        <button type="button" class="modal-close" id="closeEditLegModalBtn" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-help">Update the departure/arrival ICAOs and ETD/ETA. Saving will automatically change this leg’s health to Blue.</p>
+        <div class="edit-leg-form-grid">
+          <label class="edit-leg-field">
+            <span>Departure ICAO</span>
+            <input type="text" id="editLegDepInput" maxlength="4" placeholder="EGSS" />
+          </label>
+          <label class="edit-leg-field">
+            <span>Arrival ICAO</span>
+            <input type="text" id="editLegDestInput" maxlength="4" placeholder="KTEB" />
+          </label>
+          <label class="edit-leg-field">
+            <span>ETD</span>
+            <input type="datetime-local" id="editLegEtdInput" />
+          </label>
+          <label class="edit-leg-field">
+            <span>ETA</span>
+            <input type="datetime-local" id="editLegEtaInput" />
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer edit-leg-footer">
+        <button type="button" class="drawer-action" id="cancelEditLegBtn">Cancel</button>
+        <button type="button" class="drawer-action primary" id="saveEditLegBtn">Save Leg Changes</button>
       </div>
     </div>
   </div>
