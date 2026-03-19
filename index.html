@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trip Workspace v1.25</title>
+  <title>Trip Workspace v1.26.1</title>
   <link rel="stylesheet" href="workspace.css" />
 </head>
 <body>
@@ -23,7 +23,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <div class="release-badge">Release 0.26</div>
+        <div class="release-badge">Release 0.26.1</div>
       </div>
     </aside>
 
@@ -222,7 +222,10 @@
           <section class="panel">
             <div class="panel-header">
               <h2>Selected Leg</h2>
-              <div class="panel-meta">Working sector detail</div>
+              <div class="panel-actions">
+                <button type="button" class="panel-icon-btn" id="addServiceBtn" title="Add service">+</button>
+                <button type="button" class="panel-icon-btn" id="removeServiceBtn" title="Remove selected service">−</button>
+              </div>
             </div>
             <div id="selectedLegPanel" class="panel-body"></div>
           </section>
@@ -234,25 +237,12 @@
             <div id="alertsTasksPanel" class="panel-body two-col"></div>
           </section>
 
-          <div class="panel-row">
-            <section class="panel">
-              <div class="panel-header">
-                <h2>Leg Notes</h2>
-              </div>
-              <div id="overviewPanel" class="panel-body"></div>
-            </section>
-
-            <section class="panel">
-              <div class="panel-header">
-                <h2>Services</h2>
-                <div class="panel-actions">
-                  <button type="button" class="panel-icon-btn" id="addServiceBtn" title="Add service">+</button>
-                  <button type="button" class="panel-icon-btn" id="removeServiceBtn" title="Remove selected service">−</button>
-                </div>
-              </div>
-              <div id="servicesPanel" class="panel-body"></div>
-            </section>
-          </div>
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Leg Notes</h2>
+            </div>
+            <div id="overviewPanel" class="panel-body"></div>
+          </section>
         </div>
 
         <aside class="right-panels">
@@ -285,6 +275,27 @@
       </div>
     </main>
   </div>
+
+  <div class="modal-backdrop hidden" id="serviceModalBackdrop">
+    <div class="modal-dialog service-modal" role="dialog" aria-modal="true" aria-labelledby="serviceModalTitle">
+      <div class="modal-header">
+        <div>
+          <div class="drawer-eyebrow">Selected Leg</div>
+          <h2 id="serviceModalTitle">Add Services</h2>
+        </div>
+        <button type="button" class="modal-close" id="closeServiceModalBtn" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-help">Select one or more services to add to the selected leg. Added services disappear from the list immediately.</p>
+        <div id="serviceModalPills" class="service-modal-pills"></div>
+        <div id="serviceModalEmpty" class="service-modal-empty hidden">All available services have been added to this leg.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="drawer-action" id="doneServiceModalBtn">Done</button>
+      </div>
+    </div>
+  </div>
+
 
   <script src="workspace.js"></script>
 </body>
