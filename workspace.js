@@ -45,11 +45,10 @@ const kpiStrip = document.getElementById("kpiStrip");
 const selectedTripPanel = document.getElementById("selectedTripPanel");
 const selectedUpdated = document.getElementById("selectedUpdated");
 const legSelectorPanel = document.getElementById("legSelectorPanel");
-const alertsTasksPanel = document.getElementById("alertsTasksPanel");
 const overviewPanel = document.getElementById("overviewPanel");
 const selectedLegPanel = document.getElementById("selectedLegPanel");
 const addServiceBtn = document.getElementById("addServiceBtn");
-const removeServiceBtn = document.getElementById("removeServiceBtn");
+const editLegHeaderBtn = document.getElementById("editLegHeaderBtn");
 const taskListPanel = document.getElementById("taskListPanel");
 const recentUpdatesPanel = document.getElementById("recentUpdatesPanel");
 const searchInput = document.getElementById("searchInput");
@@ -75,6 +74,14 @@ const serviceModalPills = document.getElementById("serviceModalPills");
 const serviceModalEmpty = document.getElementById("serviceModalEmpty");
 const closeServiceModalBtn = document.getElementById("closeServiceModalBtn");
 const doneServiceModalBtn = document.getElementById("doneServiceModalBtn");
+const editLegModalBackdrop = document.getElementById("editLegModalBackdrop");
+const closeEditLegModalBtn = document.getElementById("closeEditLegModalBtn");
+const cancelEditLegBtn = document.getElementById("cancelEditLegBtn");
+const saveEditLegBtn = document.getElementById("saveEditLegBtn");
+const editLegDepInput = document.getElementById("editLegDepInput");
+const editLegDestInput = document.getElementById("editLegDestInput");
+const editLegEtdInput = document.getElementById("editLegEtdInput");
+const editLegEtaInput = document.getElementById("editLegEtaInput");
 
 function formatLegDateTime(iso) {
   if (!iso || Number.isNaN(Date.parse(iso))) return "TBA";
@@ -209,6 +216,7 @@ function setTrips(trips, options = {}) {
 }
 
 function updateDataStatus() {
+  if (!dataStatusBadge || !workspaceDataStatus) return;
   dataStatusBadge.classList.remove("status-empty", "status-clean", "status-dirty", "status-error");
   if (!state.trips.length) {
     dataStatusBadge.classList.add("status-empty");
@@ -233,10 +241,11 @@ function updateDataStatus() {
 }
 
 function populateClientFilter() {
+  if (!clientFilter) return;
   const currentValue = clientFilter.value || "all";
   const counts = new Map();
   state.trips.forEach(trip => counts.set(trip.client || "Unknown Client", (counts.get(trip.client || "Unknown Client") || 0) + 1));
-  const clients = Array.from(counts.entries()).sort((a,b) => a[0].localeCompare(b[0]));
+  const clients = Array.from(counts.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   clientFilter.innerHTML = '<option value="all">All Clients</option>';
   clients.forEach(([name, count]) => {
     const option = document.createElement("option");
@@ -284,6 +293,10 @@ function getTripAlertsCount(trip) {
   return trip.legs.reduce((sum, leg) => sum + (leg.alerts || []).length, 0);
 }
 
+function getTripServicesCount(trip) {
+  return trip.legs.reduce((sum, leg) => sum + (Array.isArray(leg.services) ? leg.services.length : 0), 0);
+}
+
 function getLaneForTrip(trip) {
   if (!trip || trip.workflowStatus === "completed") return null;
   const firstLeg = getPrimaryLeg(trip);
@@ -296,10 +309,10 @@ function getLaneForTrip(trip) {
 }
 
 function getFilteredTrips() {
-  const search = searchInput.value.trim().toLowerCase();
-  const healthFilter = statusFilter.value;
-  const client = clientFilter.value;
-  const includeCompleted = scopeFilter.value === "includeCompleted" || scopeFilter.value === "all";
+  const search = searchInput?.value.trim().toLowerCase() || "";
+  const healthFilter = statusFilter?.value || "all";
+  const client = clientFilter?.value || "all";
+  const includeCompleted = (scopeFilter?.value === "includeCompleted" || scopeFilter?.value === "all");
 
   return getVisibleTrips(state.trips, includeCompleted).filter(trip => {
     const matchesSearch = !search ||
@@ -323,7 +336,6 @@ function getSelectedLeg(trip) {
   return trip.legs.find(l => l.id === state.selectedLegId) || trip.legs[0] || null;
 }
 
-
 function getAvailableServicesForLeg(leg) {
   const existing = new Set((Array.isArray(leg?.services) ? leg.services : []).map(s => String(s).toLowerCase()));
   return SERVICE_CATALOG.filter(service => !existing.has(service.toLowerCase()));
@@ -343,7 +355,9 @@ function renderServiceModal(trip, leg) {
 
   const available = getAvailableServicesForLeg(leg);
   serviceModalBackdrop.classList.remove("hidden");
-  serviceModalPills.innerHTML = available.map(service => `<button type="button" class="service-modal-pill" data-service-option="${escapeAttribute(service)}">${escapeHtml(service)}</button>`).join("");
+  serviceModalPills.innerHTML = available.map(service =>
+    `<button type="button" class="service-modal-pill" data-service-option="${escapeAttribute(service)}">${escapeHtml(service)}</button>`
+  ).join("");
   serviceModalEmpty.classList.toggle("hidden", available.length !== 0);
 
   serviceModalPills.querySelectorAll("[data-service-option]").forEach(btn => btn.addEventListener("click", () => {
@@ -353,8 +367,7 @@ function renderServiceModal(trip, leg) {
       leg.services.push(value);
       state.selectedServiceName = value;
       markDirty();
-      renderSelectedLeg(trip, leg);
-      renderServiceModal(trip, leg);
+      render();
     }
   }));
 }
@@ -367,7 +380,62 @@ function openServiceModal() {
   renderServiceModal(trip, leg);
 }
 
+
+function isoToDatetimeLocal(iso) {
+  if (!iso || Number.isNaN(Date.parse(iso))) return "";
+  const d = new Date(iso);
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const hours = String(d.getUTCHours()).padStart(2, "0");
+  const minutes = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function datetimeLocalToIso(value) {
+  if (!value) return null;
+  const parsed = new Date(`${value}:00Z`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+function closeEditLegModal() {
+  if (editLegModalBackdrop) editLegModalBackdrop.classList.add("hidden");
+}
+
+function openEditLegModal() {
+  const trip = getSelectedTrip(getFilteredTrips());
+  const leg = getSelectedLeg(trip);
+  if (!trip || !leg) return;
+  if (editLegDepInput) editLegDepInput.value = (leg.dep || "").replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase();
+  if (editLegDestInput) editLegDestInput.value = (leg.dest || "").replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase();
+  if (editLegEtdInput) editLegEtdInput.value = isoToDatetimeLocal(leg.etd);
+  if (editLegEtaInput) editLegEtaInput.value = isoToDatetimeLocal(leg.eta);
+  if (editLegModalBackdrop) editLegModalBackdrop.classList.remove("hidden");
+}
+
+function saveEditLegChanges() {
+  const trip = getSelectedTrip(getFilteredTrips());
+  const leg = getSelectedLeg(trip);
+  if (!trip || !leg) return;
+
+  const dep = (editLegDepInput?.value || "").trim().toUpperCase();
+  const dest = (editLegDestInput?.value || "").trim().toUpperCase();
+  const etdIso = datetimeLocalToIso(editLegEtdInput?.value || "");
+  const etaIso = datetimeLocalToIso(editLegEtaInput?.value || "");
+
+  leg.dep = dep || "TBA";
+  leg.dest = dest || "TBA";
+  leg.etd = etdIso;
+  leg.eta = etaIso;
+  leg.health = "blue";
+
+  markDirty();
+  closeEditLegModal();
+  render();
+}
+
 function renderKPIs(filteredTrips) {
+  if (!kpiStrip) return;
   if (state.kpiCollapsed) {
     kpiStrip.innerHTML = "";
     kpiStrip.style.display = "none";
@@ -390,6 +458,7 @@ function renderKPIs(filteredTrips) {
 }
 
 function renderLanes(filteredTrips) {
+  if (!lanesContainer) return;
   lanesContainer.innerHTML = lanes.map(key => {
     const cfg = laneConfig[key];
     const laneTrips = filteredTrips.filter(trip => getLaneForTrip(trip) === key);
@@ -400,10 +469,10 @@ function renderLanes(filteredTrips) {
       </div>
       <div class="lane-body">
         ${laneTrips.length ? laneTrips.map(trip => `<button class="trip-card health-${getTripHealth(trip)} ${trip.id === state.selectedTripId ? "selected" : ""}" data-trip-id="${trip.id}">
-          <div class="trip-top"><div class="trip-ref">${trip.tripRef}</div><div class="trip-callsign">${trip.callsign}</div></div>
+          <div class="trip-top"><div class="trip-ref">${escapeHtml(trip.tripRef)}</div><div class="trip-callsign">${escapeHtml(trip.registration || "—")}</div></div>
           <div class="trip-metrics">
             <div class="trip-metric"><span class="metric-icon">✈</span><span class="metric-value">${trip.legs.length}</span></div>
-            <div class="trip-metric"><span class="metric-icon">⚙</span><span class="metric-value">${trip.services.length}</span></div>
+            <div class="trip-metric"><span class="metric-icon">⚙</span><span class="metric-value">${getTripServicesCount(trip)}</span></div>
             <div class="trip-metric"><span class="metric-icon">!</span><span class="metric-value">${getTripAlertsCount(trip)}</span></div>
           </div>
         </button>`).join("") : `<div class="empty-lane">No trips in this lane.</div>`}
@@ -422,6 +491,7 @@ function renderLanes(filteredTrips) {
 }
 
 function renderSelectedTrip(trip, leg) {
+  if (!selectedTripPanel || !selectedUpdated) return;
   if (!trip || !leg) {
     selectedUpdated.textContent = "";
     selectedTripPanel.innerHTML = `<div class="empty-state-card"><h3>No Trip Selected</h3><p>Load a trips.js file and select a trip to begin.</p></div>`;
@@ -449,6 +519,7 @@ function renderSelectedTrip(trip, leg) {
 }
 
 function renderLegSelector(trip) {
+  if (!legSelectorPanel) return;
   if (!trip) {
     legSelectorPanel.innerHTML = `<div class="empty-state-card"><h3>No Legs Available</h3><p>Once a trips.js file is loaded, leg selection will appear here.</p></div>`;
     return;
@@ -456,7 +527,7 @@ function renderLegSelector(trip) {
   legSelectorPanel.innerHTML = `<div class="leg-selector-row">
     ${trip.legs.map(leg => `<button class="leg-tab ${leg.id === state.selectedLegId ? "active" : ""}" data-leg-id="${leg.id}">
       <div class="leg-tab-seq">Leg ${leg.seq}</div>
-      <div class="leg-tab-route">${leg.dep} → ${leg.dest}</div>
+      <div class="leg-tab-route">${escapeHtml(leg.dep)} → ${escapeHtml(leg.dest)}</div>
       <div class="leg-tab-time">ETD ${formatLegDateTime(leg.etd)}</div>
       <div class="leg-tab-time">ETA ${formatLegDateTime(leg.eta)}</div>
       <div class="leg-tab-status"><span class="health-dot ${getLegHealth(leg)}"></span>${getLegHealth(leg).toUpperCase()}</div>
@@ -469,24 +540,25 @@ function renderLegSelector(trip) {
   }));
 }
 
-
 function renderSelectedLeg(trip, leg) {
+  if (!selectedLegPanel) return;
   if (!trip || !leg) {
-    selectedLegPanel.innerHTML = `<div class="empty-state-card"><h3>No Leg Selected</h3><p>Select a leg to view its working detail and services.</p></div>`;
+    selectedLegPanel.innerHTML = `<div class="empty-state-card"><h3>No Leg Selected</h3><p>Select a leg to view its working detail, health, and services.</p></div>`;
     if (addServiceBtn) addServiceBtn.disabled = true;
-    if (removeServiceBtn) removeServiceBtn.disabled = true;
+    if (editLegHeaderBtn) editLegHeaderBtn.disabled = true;
     return;
   }
 
   const services = Array.isArray(leg.services) ? leg.services : [];
+
   selectedLegPanel.innerHTML = `<div class="selected-leg-stack">
     <div class="selected-leg-header">
       <div>
-        <div class="selected-leg-callsign">${escapeHtml(trip.callsign || trip.registration || "—")}</div>
+        <div class="selected-leg-callsign">${escapeHtml((trip.callsign && String(trip.callsign).trim()) ? trip.callsign : (trip.registration || "—"))}</div>
         <div class="selected-leg-route">${escapeHtml(leg.dep || "TBA")} → ${escapeHtml(leg.dest || "TBA")}</div>
       </div>
       <div class="action-buttons">
-        <button class="primary">Edit Leg</button>
+        
       </div>
     </div>
     <div class="info-grid selected-leg-grid">
@@ -495,32 +567,6 @@ function renderSelectedLeg(trip, leg) {
       <div class="info-card"><div class="info-label">ETD</div><div class="info-value">${formatLegDateTime(leg.etd)}</div></div>
       <div class="info-card"><div class="info-label">ETA</div><div class="info-value">${formatLegDateTime(leg.eta)}</div></div>
     </div>
-    <div class="selected-leg-services-block">
-      <div class="generic-title">Services</div>
-      ${services.length
-        ? `<div class="service-stack">${services.map((s, index) => `<button type="button" class="service-pill ${state.selectedServiceName === s ? "selected" : ""}" data-service-name="${escapeAttribute(s)}" data-service-index="${index}">
-            <span>${escapeHtml(s)}</span>
-            <span class="service-pill-remove">−</span>
-          </button>`).join("")}</div>`
-        : `<div class="generic-card compact-empty"><div class="generic-text">No services recorded on this leg.</div></div>`}
-    </div>
-  </div>`;
-
-  if (addServiceBtn) addServiceBtn.disabled = false;
-  if (removeServiceBtn) removeServiceBtn.disabled = !services.length || !state.selectedServiceName;
-
-  selectedLegPanel.querySelectorAll("[data-service-name]").forEach(btn => btn.addEventListener("click", () => {
-    state.selectedServiceName = btn.dataset.serviceName;
-    renderSelectedLeg(trip, leg);
-  }));
-}
-
-function renderAlertsAndTasks(trip, leg) {
-  if (!trip || !leg) {
-    alertsTasksPanel.innerHTML = `<div class="empty-state-card" style="grid-column:1/-1"><h3>No Active Data</h3><p>Alerts and tasks will appear once a leg is selected.</p></div>`;
-    return;
-  }
-  alertsTasksPanel.innerHTML = `<div class="stack">
     <div class="control-card">
       <div class="control-title">Leg Health</div>
       <div class="health-controls">
@@ -531,34 +577,51 @@ function renderAlertsAndTasks(trip, leg) {
         <button type="button" class="health-btn red ${getLegHealth(leg) === "red" ? "active" : ""}" data-leg-health="red">Red</button>
       </div>
     </div>
-    <div class="stack-title">Alerts</div>
-    ${(leg.alerts || []).length ? leg.alerts.map(a => `<div class="alert-card">${a}</div>`).join("") : `<div class="generic-card"><div class="generic-text">No active alerts.</div></div>`}
-  </div>
-  <div class="stack">
-    <div class="control-card">
-      <div class="control-title">Trip Workflow</div>
-      <div class="workflow-controls">
-        <button type="button" class="workflow-btn ${trip.workflowStatus === "active" ? "active" : ""}" data-trip-workflow="active">Active</button>
-        <button type="button" class="workflow-btn ${trip.workflowStatus === "completed" ? "active" : ""}" data-trip-workflow="completed">Completed</button>
-      </div>
+    <div class="selected-leg-services-block">
+      <div class="generic-title">Services</div>
+      ${services.length
+        ? `<div class="service-stack">${services.map((s, index) => `<button type="button" class="service-pill ${state.selectedServiceName === s ? "selected" : ""}" data-service-name="${escapeAttribute(s)}" data-service-index="${index}">
+            <span>${escapeHtml(s)}</span>
+            <span class="service-pill-remove" data-remove-service="${escapeAttribute(s)}" title="Remove service">−</span>
+          </button>`).join("")}</div>`
+        : `<div class="generic-card compact-empty"><div class="generic-text">No services recorded on this leg.</div></div>`}
     </div>
-    <div class="stack-title">Next Tasks</div>
-    ${(leg.tasks || []).length ? leg.tasks.map(t => `<div class="task-card">${t}</div>`).join("") : `<div class="generic-card"><div class="generic-text">No outstanding tasks.</div></div>`}
   </div>`;
 
-  alertsTasksPanel.querySelectorAll("[data-leg-health]").forEach(btn => btn.addEventListener("click", () => {
+  if (addServiceBtn) addServiceBtn.disabled = false;
+  if (editLegHeaderBtn) editLegHeaderBtn.disabled = false;
+
+  selectedLegPanel.querySelectorAll("[data-leg-health]").forEach(btn => btn.addEventListener("click", () => {
     leg.health = btn.dataset.legHealth;
     markDirty();
     render();
   }));
-  alertsTasksPanel.querySelectorAll("[data-trip-workflow]").forEach(btn => btn.addEventListener("click", () => {
-    trip.workflowStatus = btn.dataset.tripWorkflow;
+
+  selectedLegPanel.querySelectorAll("[data-service-name]").forEach(btn => btn.addEventListener("click", (event) => {
+    if (event.target && event.target.closest("[data-remove-service]")) return;
+    state.selectedServiceName = btn.dataset.serviceName;
+    renderSelectedLeg(trip, leg);
+  }));
+
+  selectedLegPanel.querySelectorAll("[data-remove-service]").forEach(btn => btn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const serviceName = btn.getAttribute("data-remove-service");
+    if (!Array.isArray(leg.services)) leg.services = [];
+    leg.services = leg.services.filter(s => s !== serviceName);
+    if (state.selectedServiceName === serviceName) state.selectedServiceName = null;
     markDirty();
     render();
   }));
+
+}
+
+function renderAlertsAndTasks(trip, leg) {
+  return;
 }
 
 function renderOverview(trip, leg) {
+  if (!overviewPanel) return;
   if (!trip || !leg) {
     overviewPanel.innerHTML = `<div class="empty-state-card"><h3>Leg Notes Empty</h3><p>Leg notes will appear here after loading a trips.js file.</p></div>`;
     return;
@@ -582,19 +645,25 @@ function renderOverview(trip, leg) {
 }
 
 function renderTaskList(filteredTrips) {
+  if (!taskListPanel) return;
   const items = filteredTrips.flatMap(trip => trip.legs.flatMap(leg => (leg.tasks || []).map(task => ({
-    callsign: trip.callsign, route: `${leg.dep} → ${leg.dest}`, task
+    callsign: trip.callsign,
+    route: `${leg.dep} → ${leg.dest}`,
+    task
   })))).slice(0, 8);
-  taskListPanel.innerHTML = items.length ? items.map(item => `<div class="task-list-item"><div class="small">${item.callsign} · ${item.route}</div><div class="main">${item.task}</div></div>`).join("") : `<div class="generic-card"><div class="generic-text">No tasks to display.</div></div>`;
+  taskListPanel.innerHTML = items.length
+    ? items.map(item => `<div class="task-list-item"><div class="small">${escapeHtml(item.callsign)} · ${escapeHtml(item.route)}</div><div class="main">${escapeHtml(item.task)}</div></div>`).join("")
+    : `<div class="generic-card"><div class="generic-text">No tasks to display.</div></div>`;
 }
 
 function renderRecentUpdates(filteredTrips) {
+  if (!recentUpdatesPanel) return;
   if (!filteredTrips.length) {
     recentUpdatesPanel.innerHTML = `<div class="generic-card"><div class="generic-text">No updates available. Load a trips.js file to begin.</div></div>`;
     return;
   }
-  const updates = filteredTrips.slice(0, 5).map(trip => `${trip.callsign} in ${laneConfig[getLaneForTrip(trip)]?.label || "Completed"} with ${getTripHealth(trip).toUpperCase()} trip health.`);
-  recentUpdatesPanel.innerHTML = updates.map(item => `<div class="update-item"><div class="main">${item}</div></div>`).join("");
+  const updates = filteredTrips.slice(0, 5).map(trip => `${trip.registration || trip.callsign} in ${laneConfig[getLaneForTrip(trip)]?.label || "Completed"} with ${getTripHealth(trip).toUpperCase()} trip health.`);
+  recentUpdatesPanel.innerHTML = updates.map(item => `<div class="update-item"><div class="main">${escapeHtml(item)}</div></div>`).join("");
 }
 
 function isValidIsoDate(value) {
@@ -610,10 +679,18 @@ function buildGallimimusFlights(sourceTrips) {
     const target = byRegistration.get(registration);
     trip.legs.forEach(leg => {
       if (!isValidIsoDate(leg.etd) || !isValidIsoDate(leg.eta)) return;
-      target.sectors.push({ callsign: trip.callsign || registration, dep: leg.dep, dest: leg.dest, etdUtc: leg.etd, etaUtc: leg.eta });
+      target.sectors.push({
+        callsign: trip.callsign || registration,
+        dep: leg.dep,
+        dest: leg.dest,
+        etdUtc: leg.etd,
+        etaUtc: leg.eta
+      });
     });
   });
-  return Array.from(byRegistration.values()).map(entry => ({ ...entry, sectors: entry.sectors.sort((a,b) => Date.parse(a.etdUtc) - Date.parse(b.etdUtc)) })).filter(entry => entry.sectors.length);
+  return Array.from(byRegistration.values())
+    .map(entry => ({ ...entry, sectors: entry.sectors.sort((a, b) => Date.parse(a.etdUtc) - Date.parse(b.etdUtc)) }))
+    .filter(entry => entry.sectors.length);
 }
 
 function serializeGallimimusFlights(sourceTrips) {
@@ -637,6 +714,7 @@ function downloadTextFile(filename, content) {
 }
 
 function setBoardExportStatus(message, type = "") {
+  if (!boardExportStatus) return;
   boardExportStatus.textContent = message;
   boardExportStatus.classList.remove("success", "error", "warning");
   if (type) boardExportStatus.classList.add(type);
@@ -650,7 +728,10 @@ async function saveTextToHandle(handle, content) {
 
 async function saveFileWithPicker(content, filename, description) {
   if (window.showSaveFilePicker) {
-    const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description, accept: { "text/javascript": [".js"] } }] });
+    const handle = await window.showSaveFilePicker({
+      suggestedName: filename,
+      types: [{ description, accept: { "text/javascript": [".js"] } }]
+    });
     await saveTextToHandle(handle, content);
     return handle;
   }
@@ -717,7 +798,10 @@ async function loadTripsFromFileHandle(handle) {
 async function loadTripsJs() {
   try {
     if (window.showOpenFilePicker) {
-      const [handle] = await window.showOpenFilePicker({ multiple: false, types: [{ description: "Trips JavaScript", accept: { "text/javascript": [".js"] } }] });
+      const [handle] = await window.showOpenFilePicker({
+        multiple: false,
+        types: [{ description: "Trips JavaScript", accept: { "text/javascript": [".js"] } }]
+      });
       if (handle) await loadTripsFromFileHandle(handle);
       return;
     }
@@ -734,23 +818,31 @@ async function loadTripsJs() {
     });
     input.click();
   } catch (error) {
-    workspaceDataStatus.classList.remove("success", "warning");
-    workspaceDataStatus.classList.add("error");
-    workspaceDataStatus.textContent = `Load failed.\n${error.message}`;
-    dataStatusBadge.classList.remove("status-empty", "status-clean", "status-dirty");
-    dataStatusBadge.classList.add("status-error");
-    dataStatusBadge.textContent = "Load failed";
+    if (workspaceDataStatus) {
+      workspaceDataStatus.classList.remove("success", "warning");
+      workspaceDataStatus.classList.add("error");
+      workspaceDataStatus.textContent = `Load failed.\n${error.message}`;
+    }
+    if (dataStatusBadge) {
+      dataStatusBadge.classList.remove("status-empty", "status-clean", "status-dirty");
+      dataStatusBadge.classList.add("status-error");
+      dataStatusBadge.textContent = "Load failed";
+    }
   }
 }
 
 async function saveTripsJs(useSaveAs = false) {
   if (!state.trips.length) {
-    workspaceDataStatus.classList.remove("success", "warning");
-    workspaceDataStatus.classList.add("error");
-    workspaceDataStatus.textContent = "Nothing to save.\nLoad a local trips.js first.";
-    dataStatusBadge.classList.remove("status-empty", "status-clean", "status-dirty");
-    dataStatusBadge.classList.add("status-error");
-    dataStatusBadge.textContent = "No data to save";
+    if (workspaceDataStatus) {
+      workspaceDataStatus.classList.remove("success", "warning");
+      workspaceDataStatus.classList.add("error");
+      workspaceDataStatus.textContent = "Nothing to save.\nLoad a local trips.js first.";
+    }
+    if (dataStatusBadge) {
+      dataStatusBadge.classList.remove("status-empty", "status-clean", "status-dirty");
+      dataStatusBadge.classList.add("status-error");
+      dataStatusBadge.textContent = "No data to save";
+    }
     return;
   }
   try {
@@ -765,12 +857,16 @@ async function saveTripsJs(useSaveAs = false) {
     markClean();
     render();
   } catch (error) {
-    workspaceDataStatus.classList.remove("success", "warning");
-    workspaceDataStatus.classList.add("error");
-    workspaceDataStatus.textContent = `Save failed.\n${error.message}`;
-    dataStatusBadge.classList.remove("status-empty", "status-clean", "status-dirty");
-    dataStatusBadge.classList.add("status-error");
-    dataStatusBadge.textContent = "Save failed";
+    if (workspaceDataStatus) {
+      workspaceDataStatus.classList.remove("success", "warning");
+      workspaceDataStatus.classList.add("error");
+      workspaceDataStatus.textContent = `Save failed.\n${error.message}`;
+    }
+    if (dataStatusBadge) {
+      dataStatusBadge.classList.remove("status-empty", "status-clean", "status-dirty");
+      dataStatusBadge.classList.add("status-error");
+      dataStatusBadge.textContent = "Save failed";
+    }
   }
 }
 
@@ -778,6 +874,7 @@ function resetWorkspace() {
   state.trips = [];
   state.selectedTripId = null;
   state.selectedLegId = null;
+  state.selectedServiceName = null;
   state.tripsFileHandle = null;
   state.loadedFileName = "";
   state.dirty = false;
@@ -793,19 +890,24 @@ function render() {
   updateDataStatus();
   const filteredTrips = getFilteredTrips();
   const selectedTrip = getSelectedTrip(filteredTrips);
+
   if (selectedTrip) {
     state.selectedTripId = selectedTrip.id;
-    if (!selectedTrip.legs.some(l => l.id === state.selectedLegId)) state.selectedLegId = selectedTrip.legs[0]?.id || null;
+    if (!selectedTrip.legs.some(l => l.id === state.selectedLegId)) {
+      state.selectedLegId = selectedTrip.legs[0]?.id || null;
+    }
   } else {
     state.selectedTripId = null;
     state.selectedLegId = null;
   }
+
   const selectedLeg = getSelectedLeg(selectedTrip);
   renderKPIs(filteredTrips);
   renderLanes(filteredTrips);
   renderSelectedTrip(selectedTrip, selectedLeg);
   renderLegSelector(selectedTrip);
   renderSelectedLeg(selectedTrip, selectedLeg);
+
   if (state.serviceModalOpen) {
     if (selectedTrip && selectedLeg) {
       renderServiceModal(selectedTrip, selectedLeg);
@@ -813,16 +915,21 @@ function render() {
       closeServiceModal();
     }
   }
-  renderAlertsAndTasks(selectedTrip, selectedLeg);
+
   renderOverview(selectedTrip, selectedLeg);
   renderTaskList(filteredTrips);
   renderRecentUpdates(filteredTrips);
-  document.querySelector(".right-panels").style.display = state.utilityHidden ? "none" : "";
+
+  const rightPanels = document.querySelector(".right-panels");
+  if (rightPanels) rightPanels.style.display = state.utilityHidden ? "none" : "";
 }
 
 navButtons.forEach(btn => btn.addEventListener("click", () => setDrawer(state.openDrawerId === btn.dataset.drawer ? null : btn.dataset.drawer)));
 document.querySelectorAll("[data-close-drawer]").forEach(btn => btn.addEventListener("click", () => setDrawer(null)));
-[searchInput, statusFilter, clientFilter, scopeFilter].forEach(el => { el.addEventListener("input", render); el.addEventListener("change", render); });
+[searchInput, statusFilter, clientFilter, scopeFilter].forEach(el => {
+  el?.addEventListener("input", render);
+  el?.addEventListener("change", render);
+});
 openBoardBtn?.addEventListener("click", openGallimimusBoard);
 saveFlightJsBtn?.addEventListener("click", saveBoardFlightJs);
 updateFlightJsBtn?.addEventListener("click", saveBoardFlightJs);
@@ -840,6 +947,8 @@ toggleUtilityBtn?.addEventListener("click", () => {
   toggleUtilityBtn.textContent = state.utilityHidden ? "Show utility column" : "Toggle utility column";
   render();
 });
+addServiceBtn?.addEventListener("click", openServiceModal);
+editLegHeaderBtn?.addEventListener("click", openEditLegModal);
 closeServiceModalBtn?.addEventListener("click", closeServiceModal);
 doneServiceModalBtn?.addEventListener("click", closeServiceModal);
 serviceModalBackdrop?.addEventListener("click", (event) => {
@@ -847,6 +956,17 @@ serviceModalBackdrop?.addEventListener("click", (event) => {
 });
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && state.serviceModalOpen) closeServiceModal();
+});
+closeEditLegModalBtn?.addEventListener("click", closeEditLegModal);
+cancelEditLegBtn?.addEventListener("click", closeEditLegModal);
+saveEditLegBtn?.addEventListener("click", saveEditLegChanges);
+editLegModalBackdrop?.addEventListener("click", (event) => {
+  if (event.target === editLegModalBackdrop) closeEditLegModal();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && editLegModalBackdrop && !editLegModalBackdrop.classList.contains("hidden")) {
+    closeEditLegModal();
+  }
 });
 
 setDrawer("workspaceDrawer");
