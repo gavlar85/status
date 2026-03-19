@@ -2,6 +2,19 @@
 const STORAGE_KEY_TRIPS = "workspace_local_trips_v2";
 const STORAGE_KEY_META = "workspace_local_meta_v2";
 
+const SERVICE_CATALOG = [
+  "Flight Plans",
+  "Fuel",
+  "GRS",
+  "Handling",
+  "Hotel (Crew)",
+  "Hotel (Pax)",
+  "Landing Permit",
+  "Overflight Permit(s)",
+  "Transport (Crew)",
+  "Transport (Pax)"
+];
+
 const healthRank = { green: 0, white: 1, blue: 2, amber: 3, red: 4 };
 const laneConfig = {
   operating: { label: "Operating", dotClass: "operating-dot" },
@@ -23,7 +36,8 @@ const state = {
   lastLocalSave: "",
   lastExport: "",
   kpiCollapsed: false,
-  utilityHidden: false
+  utilityHidden: false,
+  serviceModalOpen: false
 };
 
 const lanesContainer = document.getElementById("lanesContainer");
@@ -31,10 +45,9 @@ const kpiStrip = document.getElementById("kpiStrip");
 const selectedTripPanel = document.getElementById("selectedTripPanel");
 const selectedUpdated = document.getElementById("selectedUpdated");
 const legSelectorPanel = document.getElementById("legSelectorPanel");
-const selectedLegPanel = document.getElementById("selectedLegPanel");
 const alertsTasksPanel = document.getElementById("alertsTasksPanel");
 const overviewPanel = document.getElementById("overviewPanel");
-const servicesPanel = document.getElementById("servicesPanel");
+const selectedLegPanel = document.getElementById("selectedLegPanel");
 const addServiceBtn = document.getElementById("addServiceBtn");
 const removeServiceBtn = document.getElementById("removeServiceBtn");
 const taskListPanel = document.getElementById("taskListPanel");
@@ -57,6 +70,11 @@ const saveTripsJsAsBtn = document.getElementById("saveTripsJsAsBtn");
 const resetWorkspaceBtn = document.getElementById("resetWorkspaceBtn");
 const collapseKpiBtn = document.getElementById("collapseKpiBtn");
 const toggleUtilityBtn = document.getElementById("toggleUtilityBtn");
+const serviceModalBackdrop = document.getElementById("serviceModalBackdrop");
+const serviceModalPills = document.getElementById("serviceModalPills");
+const serviceModalEmpty = document.getElementById("serviceModalEmpty");
+const closeServiceModalBtn = document.getElementById("closeServiceModalBtn");
+const doneServiceModalBtn = document.getElementById("doneServiceModalBtn");
 
 function formatLegDateTime(iso) {
   if (!iso || Number.isNaN(Date.parse(iso))) return "TBA";
@@ -254,26 +272,12 @@ function getTripHealth(trip) {
   return "white";
 }
 
-function formatTripHealthLabel(value) {
-  const map = {
-    "white": "WHITE",
-    "blue": "BLUE",
-    "green": "GREEN",
-    "amber": "AMBER",
-    "red": "RED",
-    "striped-green": "WHITE / GREEN",
-    "striped-amber": "WHITE / AMBER",
-    "striped-red": "WHITE / RED"
-  };
-  return map[value] || String(value || "").toUpperCase();
-}
-
-function matchesTripHealthFilter(displayHealth, filterValue) {
-  if (filterValue === "all") return true;
-  if (filterValue === "green") return displayHealth === "green" || displayHealth === "striped-green";
-  if (filterValue === "amber") return displayHealth === "amber" || displayHealth === "striped-amber";
-  if (filterValue === "red") return displayHealth === "red" || displayHealth === "striped-red";
-  return displayHealth === filterValue;
+function getTripFilterHealth(trip) {
+  const displayHealth = getTripHealth(trip);
+  if (["white", "striped-green", "striped-amber", "striped-red"].includes(displayHealth)) {
+    return "white";
+  }
+  return displayHealth;
 }
 
 function getTripAlertsCount(trip) {
@@ -304,7 +308,7 @@ function getFilteredTrips() {
       (trip.client || "").toLowerCase().includes(search) ||
       (trip.tripRef || "").toLowerCase().includes(search) ||
       trip.legs.some(leg => (leg.dep || "").toLowerCase().includes(search) || (leg.dest || "").toLowerCase().includes(search));
-    const matchesHealth = matchesTripHealthFilter(getTripHealth(trip), healthFilter);
+    const matchesHealth = healthFilter === "all" || getTripFilterHealth(trip) === healthFilter;
     const matchesClient = client === "all" || trip.client === client;
     return matchesSearch && matchesHealth && matchesClient;
   });
@@ -317,6 +321,50 @@ function getSelectedTrip(filteredTrips) {
 function getSelectedLeg(trip) {
   if (!trip) return null;
   return trip.legs.find(l => l.id === state.selectedLegId) || trip.legs[0] || null;
+}
+
+
+function getAvailableServicesForLeg(leg) {
+  const existing = new Set((Array.isArray(leg?.services) ? leg.services : []).map(s => String(s).toLowerCase()));
+  return SERVICE_CATALOG.filter(service => !existing.has(service.toLowerCase()));
+}
+
+function closeServiceModal() {
+  state.serviceModalOpen = false;
+  if (serviceModalBackdrop) serviceModalBackdrop.classList.add("hidden");
+}
+
+function renderServiceModal(trip, leg) {
+  if (!serviceModalBackdrop || !serviceModalPills || !serviceModalEmpty) return;
+  if (!state.serviceModalOpen || !trip || !leg) {
+    closeServiceModal();
+    return;
+  }
+
+  const available = getAvailableServicesForLeg(leg);
+  serviceModalBackdrop.classList.remove("hidden");
+  serviceModalPills.innerHTML = available.map(service => `<button type="button" class="service-modal-pill" data-service-option="${escapeAttribute(service)}">${escapeHtml(service)}</button>`).join("");
+  serviceModalEmpty.classList.toggle("hidden", available.length !== 0);
+
+  serviceModalPills.querySelectorAll("[data-service-option]").forEach(btn => btn.addEventListener("click", () => {
+    const value = btn.dataset.serviceOption;
+    if (!Array.isArray(leg.services)) leg.services = [];
+    if (!leg.services.some(s => String(s).toLowerCase() === value.toLowerCase())) {
+      leg.services.push(value);
+      state.selectedServiceName = value;
+      markDirty();
+      renderSelectedLeg(trip, leg);
+      renderServiceModal(trip, leg);
+    }
+  }));
+}
+
+function openServiceModal() {
+  const trip = getSelectedTrip(getFilteredTrips());
+  const leg = getSelectedLeg(trip);
+  if (!leg) return;
+  state.serviceModalOpen = true;
+  renderServiceModal(trip, leg);
 }
 
 function renderKPIs(filteredTrips) {
@@ -374,17 +422,18 @@ function renderLanes(filteredTrips) {
 }
 
 function renderSelectedTrip(trip, leg) {
-  if (!trip) {
+  if (!trip || !leg) {
     selectedUpdated.textContent = "";
-    selectedTripPanel.innerHTML = `<div class="empty-state-card"><h3>No Trip Selected</h3><p>Load a local trips.js from the Workspace Drawer to populate the workspace.</p></div>`;
+    selectedTripPanel.innerHTML = `<div class="empty-state-card"><h3>No Trip Selected</h3><p>Load a trips.js file and select a trip to begin.</p></div>`;
     return;
   }
-  selectedUpdated.textContent = trip.updated ? `Last update ${trip.updated}` : "";
+  selectedUpdated.textContent = trip.updated ? `Last update ${trip.updated}` : "Trip identity";
   selectedTripPanel.innerHTML = `<div class="selected-header">
     <div>
-      <div class="selected-client">${trip.client} · ${trip.tripRef}</div>
-      <div class="selected-callsign">${trip.callsign}</div>
-      <div class="selected-meta">${trip.registration} · ${trip.aircraftType} · Health ${formatTripHealthLabel(getTripHealth(trip))} · Workflow ${trip.workflowStatus.toUpperCase()}</div>
+      <div class="selected-client">${escapeHtml(trip.client || "Unknown Client")}</div>
+      <div class="selected-callsign">${escapeHtml(trip.registration || "—")}</div>
+      <div class="selected-route">Trip ${escapeHtml(trip.tripRef || "—")}</div>
+      <div class="selected-meta">${escapeHtml(trip.registration || "—")} · ${escapeHtml(trip.aircraftType || "—")} · ${escapeHtml(trip.operator || trip.client || "")}</div>
     </div>
     <div class="action-buttons">
       <button class="primary">Edit Trip</button>
@@ -420,31 +469,50 @@ function renderLegSelector(trip) {
   }));
 }
 
+
 function renderSelectedLeg(trip, leg) {
   if (!trip || !leg) {
-    selectedLegPanel.innerHTML = `<div class="empty-state-card"><h3>No Leg Selected</h3><p>Select a working leg to view sector detail.</p></div>`;
+    selectedLegPanel.innerHTML = `<div class="empty-state-card"><h3>No Leg Selected</h3><p>Select a leg to view its working detail and services.</p></div>`;
+    if (addServiceBtn) addServiceBtn.disabled = true;
+    if (removeServiceBtn) removeServiceBtn.disabled = true;
     return;
   }
-  selectedLegPanel.innerHTML = `<div class="selected-leg-grid">
-    <div>
-      <div class="selected-leg-eyebrow">Leg ${leg.seq}</div>
-      <div class="selected-leg-callsign">${trip.callsign}</div>
-      <div class="selected-leg-route">${leg.dep} → ${leg.dest}</div>
-      <div class="selected-leg-times">
-        <div class="selected-leg-time-card">
-          <div class="selected-leg-time-label">Leg ETD</div>
-          <div class="selected-leg-time-value">${formatLegDateTime(leg.etd)}</div>
-        </div>
-        <div class="selected-leg-time-card">
-          <div class="selected-leg-time-label">Leg ETA</div>
-          <div class="selected-leg-time-value">${formatLegDateTime(leg.eta)}</div>
-        </div>
+
+  const services = Array.isArray(leg.services) ? leg.services : [];
+  selectedLegPanel.innerHTML = `<div class="selected-leg-stack">
+    <div class="selected-leg-header">
+      <div>
+        <div class="selected-leg-callsign">${escapeHtml(trip.callsign || trip.registration || "—")}</div>
+        <div class="selected-leg-route">${escapeHtml(leg.dep || "TBA")} → ${escapeHtml(leg.dest || "TBA")}</div>
+      </div>
+      <div class="action-buttons">
+        <button class="primary">Edit Leg</button>
       </div>
     </div>
-    <div class="action-buttons">
-      <button class="primary">Edit Leg</button>
+    <div class="info-grid selected-leg-grid">
+      <div class="info-card"><div class="info-label">Departure</div><div class="info-value">${escapeHtml(leg.dep || "TBA")}</div></div>
+      <div class="info-card"><div class="info-label">Arrival</div><div class="info-value">${escapeHtml(leg.dest || "TBA")}</div></div>
+      <div class="info-card"><div class="info-label">ETD</div><div class="info-value">${formatLegDateTime(leg.etd)}</div></div>
+      <div class="info-card"><div class="info-label">ETA</div><div class="info-value">${formatLegDateTime(leg.eta)}</div></div>
+    </div>
+    <div class="selected-leg-services-block">
+      <div class="generic-title">Services</div>
+      ${services.length
+        ? `<div class="service-stack">${services.map((s, index) => `<button type="button" class="service-pill ${state.selectedServiceName === s ? "selected" : ""}" data-service-name="${escapeAttribute(s)}" data-service-index="${index}">
+            <span>${escapeHtml(s)}</span>
+            <span class="service-pill-remove">−</span>
+          </button>`).join("")}</div>`
+        : `<div class="generic-card compact-empty"><div class="generic-text">No services recorded on this leg.</div></div>`}
     </div>
   </div>`;
+
+  if (addServiceBtn) addServiceBtn.disabled = false;
+  if (removeServiceBtn) removeServiceBtn.disabled = !services.length || !state.selectedServiceName;
+
+  selectedLegPanel.querySelectorAll("[data-service-name]").forEach(btn => btn.addEventListener("click", () => {
+    state.selectedServiceName = btn.dataset.serviceName;
+    renderSelectedLeg(trip, leg);
+  }));
 }
 
 function renderAlertsAndTasks(trip, leg) {
@@ -493,9 +561,6 @@ function renderAlertsAndTasks(trip, leg) {
 function renderOverview(trip, leg) {
   if (!trip || !leg) {
     overviewPanel.innerHTML = `<div class="empty-state-card"><h3>Leg Notes Empty</h3><p>Leg notes will appear here after loading a trips.js file.</p></div>`;
-    servicesPanel.innerHTML = `<div class="empty-state-card"><h3>No Services Loaded</h3><p>Services for the selected leg will appear here.</p></div>`;
-    if (addServiceBtn) addServiceBtn.disabled = true;
-    if (removeServiceBtn) removeServiceBtn.disabled = true;
     return;
   }
 
@@ -507,17 +572,6 @@ function renderOverview(trip, leg) {
     </div>
   </div>`;
 
-  const services = Array.isArray(leg.services) ? leg.services : [];
-  servicesPanel.innerHTML = services.length
-    ? `<div class="service-stack">${services.map((s, index) => `<button type="button" class="service-pill ${state.selectedServiceName === s ? "selected" : ""}" data-service-name="${escapeAttribute(s)}" data-service-index="${index}">
-        <span>${escapeHtml(s)}</span>
-        <span class="service-pill-remove">−</span>
-      </button>`).join("")}</div>`
-    : `<div class="generic-card"><div class="generic-text">No services recorded on this leg.</div></div>`;
-
-  if (addServiceBtn) addServiceBtn.disabled = false;
-  if (removeServiceBtn) removeServiceBtn.disabled = !services.length;
-
   const notesInput = document.getElementById("legNotesInput");
   if (notesInput) {
     notesInput.addEventListener("input", () => {
@@ -525,11 +579,6 @@ function renderOverview(trip, leg) {
       markDirty();
     });
   }
-
-  servicesPanel.querySelectorAll("[data-service-name]").forEach(btn => btn.addEventListener("click", () => {
-    state.selectedServiceName = btn.dataset.serviceName;
-    renderOverview(trip, leg);
-  }));
 }
 
 function renderTaskList(filteredTrips) {
@@ -544,7 +593,7 @@ function renderRecentUpdates(filteredTrips) {
     recentUpdatesPanel.innerHTML = `<div class="generic-card"><div class="generic-text">No updates available. Load a trips.js file to begin.</div></div>`;
     return;
   }
-  const updates = filteredTrips.slice(0, 5).map(trip => `${trip.callsign} in ${laneConfig[getLaneForTrip(trip)]?.label || "Completed"} with ${formatTripHealthLabel(getTripHealth(trip))} trip health.`);
+  const updates = filteredTrips.slice(0, 5).map(trip => `${trip.callsign} in ${laneConfig[getLaneForTrip(trip)]?.label || "Completed"} with ${getTripHealth(trip).toUpperCase()} trip health.`);
   recentUpdatesPanel.innerHTML = updates.map(item => `<div class="update-item"><div class="main">${item}</div></div>`).join("");
 }
 
@@ -735,6 +784,7 @@ function resetWorkspace() {
   state.lastLocalSave = "";
   state.lastExport = "";
   clearLocalCache();
+  closeServiceModal();
   showNoDataState();
 }
 
@@ -756,6 +806,13 @@ function render() {
   renderSelectedTrip(selectedTrip, selectedLeg);
   renderLegSelector(selectedTrip);
   renderSelectedLeg(selectedTrip, selectedLeg);
+  if (state.serviceModalOpen) {
+    if (selectedTrip && selectedLeg) {
+      renderServiceModal(selectedTrip, selectedLeg);
+    } else {
+      closeServiceModal();
+    }
+  }
   renderAlertsAndTasks(selectedTrip, selectedLeg);
   renderOverview(selectedTrip, selectedLeg);
   renderTaskList(filteredTrips);
@@ -782,6 +839,14 @@ toggleUtilityBtn?.addEventListener("click", () => {
   state.utilityHidden = !state.utilityHidden;
   toggleUtilityBtn.textContent = state.utilityHidden ? "Show utility column" : "Toggle utility column";
   render();
+});
+closeServiceModalBtn?.addEventListener("click", closeServiceModal);
+doneServiceModalBtn?.addEventListener("click", closeServiceModal);
+serviceModalBackdrop?.addEventListener("click", (event) => {
+  if (event.target === serviceModalBackdrop) closeServiceModal();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && state.serviceModalOpen) closeServiceModal();
 });
 
 setDrawer("workspaceDrawer");
